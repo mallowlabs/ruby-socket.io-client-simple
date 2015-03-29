@@ -25,19 +25,24 @@ module SocketIO
 
           Thread.new do
             loop do
-              if @websocket
-                if @state == :connect
-                  if Time.now.to_i - @last_ping_at > @ping_interval/1000
-                    @websocket.send "2"  ## ping
-                    @last_ping_at = Time.now.to_i
+              begin
+                if @websocket
+                  if @state == :connect
+                    if Time.now.to_i - @last_ping_at > @ping_interval/1000
+                      @websocket.send "2"  ## ping
+                      @last_ping_at = Time.now.to_i
+                    end
+                  end
+                  if @websocket.open? and Time.now.to_i - @last_pong_at > @ping_timeout/1000
+                    @websocket.close
+                    @state = :disconnect
+                    __emit :disconnect
+                    reconnect
                   end
                 end
-                if @websocket.open? and Time.now.to_i - @last_pong_at > @ping_timeout/1000
-                  @websocket.close
-                  @state = :disconnect
-                  __emit :disconnect
-                  reconnect
-                end
+              rescue OpenSSL::SSL::SSLError => e
+                @state = :disconnect
+                reconnect
               end
               sleep 1
             end
