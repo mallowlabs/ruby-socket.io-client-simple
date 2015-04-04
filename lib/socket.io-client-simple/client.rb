@@ -40,9 +40,16 @@ module SocketIO
                     reconnect
                   end
                 end
-              rescue OpenSSL::SSL::SSLError => e
-                @state = :disconnect
-                reconnect
+              rescue => e
+                warn e
+                begin
+                  @state = :disconnect
+                  reconnect
+                rescue => ex
+                  warn ex
+                  sleep 10
+                  retry
+                end
               end
               sleep 1
             end
